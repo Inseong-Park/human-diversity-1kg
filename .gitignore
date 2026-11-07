@@ -1,0 +1,12 @@
+# RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# 원본 데이터와 중간 결과 (용량이 커서 올리지 않음, 스크립트로 다시 만들 수 있음)
+data/
+work/
+
+# 실행 파일 (README에 받는 방법을 적음)
+bin/
