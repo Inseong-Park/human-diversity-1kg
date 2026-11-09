@@ -30,8 +30,7 @@ panel <- read.delim(panel_file, colClasses = "character") |>
 # ── 2. 친척 목록 ─────────────────────────────────────────────
 # 확인 결과: 이 목록의 31명은 2,504명을 만들 때 "이미 제외된" 샘플이다.
 #   예) HG00124(목록에 있음)는 VCF에 없고, 그 친척 HG00119는 VCF에 남아 있다.
-# 그래서 여기서 만드는 work/related.txt는 비어 있게 된다.
-# 2,504명 안에 남아 있는 친척은 Day 4에 KING 친족계수로 직접 찾아 work/related.txt를 다시 만든다.
+# 2,504명 안에 남아 있는 친척은 03_kinship.R에서 KING 친족계수로 직접 찾아 work/related.txt를 만든다.
 # 머리글이 "Sample "처럼 공백을 포함해서 열 이름을 직접 붙인다
 related <- read_tsv(related_file, col_types = cols(.default = "c"),
                     col_names = c("sample", "pop", "gender", "reason"), skip = 1) |>
@@ -73,18 +72,12 @@ write_tsv(samples, "work/samples.tsv")
 # ── 6. PLINK용 파일 ──────────────────────────────────────────
 # PLINK 2는 VCF를 읽을 때 샘플 이름을 IID로 쓴다. "#IID" 머리글을 붙이면 그 열로 인식한다
 
-# 6-1. 제외할 친척 샘플
-samples |>
-  filter(related) |>
-  transmute(`#IID` = sample) |>
-  write_tsv("work/related.txt")
-
-# 6-2. 집단 정보 (F_ST 계산 등에 사용)
+# 6-1. 집단 정보 (F_ST 계산 등에 사용)
 samples |>
   transmute(`#IID` = sample, POP = pop, SUPER = super_pop) |>
   write_tsv("work/pops.txt")
 
-# 6-3. 집단별 샘플 목록 (친척 제외) — 집단마다 따로 계산할 때 사용
+# 6-2. 집단별 샘플 목록 (친척 제외) — 집단마다 따로 계산할 때 사용
 for (p in unique(samples$pop)) {
   samples |>
     filter(pop == p, !related) |>

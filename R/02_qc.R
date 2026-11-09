@@ -1,7 +1,7 @@
 # 02_qc.R — PLINK 2 전처리
 # 하는 일:
 #   Part A (Day 3): VCF를 PLINK 2 형식(work/raw)으로 변환하고, 단계별로 변이가 몇 개 남는지 기록한다
-#   Part B (Day 4 이후): 친척 목록이 준비되면 분석 조건 B, V1~V4 데이터셋을 만든다 (아직 없음)
+#   Part B (Day 4 이후): 03_kinship.R로 친척 목록을 만든 뒤 분석 조건 B, V1~V4 데이터셋을 만든다
 
 suppressPackageStartupMessages(library(tidyverse))
 
@@ -73,3 +73,52 @@ psam <- read_tsv("work/raw.psam", col_types = cols(.default = "c"))
 cat("\n샘플 수:", nrow(psam), "\n")
 # 참고: VCF에는 성별 정보가 없어서 PLINK가 모두 'ambiguous'로 읽는다.
 #       22번 염색체(상염색체)만 쓰므로 분석에는 영향이 없다.
+
+
+# ── Part B. 분석 조건별 데이터셋 ─────────────────────────────
+# 순서: 02_qc.R Part A → 03_kinship.R → 02_qc.R Part B
+if (!file.exists("work/related.txt")) {
+  stop("work/related.txt가 없습니다. 먼저 R/03_kinship.R을 실행하세요")
+}
+
+# 조건 하나로 데이터셋 하나를 만드는 함수
+# --remove           : 친척 목록의 샘플을 뺀다
+# --maf              : 덜 흔한 대립유전자 빈도가 이 값 미만인 SNP를 뺀다
+# --indep-pairwise   : 50개 창에서 5개씩 옮기며 r² > 0.2인 SNP 쌍의 한쪽을 뺀다
+make_dataset <- function(name, maf, prune, remove_related) {
+  base <- c("--pfile", "work/raw", "--maf", maf)
+  if (remove_related) base <- c(base, "--remove", "work/related.txt")
+
+  extract <- character(0)
+  if (prune) {
+    run_plink(c(base, "--indep-pairwise", "50", "5", "0.2",
+                "--out", paste0("work/", name, "_prune")))
+    extract <- c("--extract", paste0("work/", name, "_prune.prune.in"))
+  }
+
+  run_plink(c(base, extract, "--make-pgen", "--out", paste0("work/", name)))
+}
+
+conditions <- tribble(
+  ~dataset, ~maf,   ~prune, ~remove_related, ~description,
+  "B",      "0.05", TRUE,   TRUE,            "기준: 1촌 이상 제외, MAF 0.05, pruning",
+  "V1",     "0.05", TRUE,   FALSE,           "친척 포함",
+  "V2",     "0.01", TRUE,   TRUE,            "MAF 0.01",
+  "V3",     "0.05", FALSE,  TRUE,            "pruning 생략",
+  "V4",     "0.01", FALSE,  TRUE,            "MAF 0.01 + pruning 생략"
+)
+
+pwalk(select(conditions, name = dataset, maf, prune, remove_related), make_dataset)
+
+# 만들어진 파일에서 샘플 수와 변이 수를 센다 (# 로 시작하는 줄은 머리글)
+count_rows <- function(path) sum(!startsWith(readLines(path, warn = FALSE), "#"))
+
+table1b <- conditions |>
+  mutate(
+    n_samples  = map_int(dataset, \(d) count_rows(paste0("work/", d, ".psam"))),
+    n_variants = map_int(dataset, \(d) count_rows(paste0("work/", d, ".pvar")))
+  ) |>
+  select(dataset, description, n_samples, n_variants)
+
+write_csv(table1b, "results/tables/table1b_dataset_summary.csv")
+print(table1b)
