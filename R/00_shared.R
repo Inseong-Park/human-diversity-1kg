@@ -26,6 +26,21 @@ run_plink <- function(args) {
 }
 
 
+# 거리(km)로 y값을 설명하는 직선을 맞추고 절편, 기울기, R², p-value를 한 줄로 돌려주는 함수
+# 기울기는 1,000km당 변화량이다. Day 11에서 조건만 바꿔 다시 쓴다
+fit_distance <- function(data, y) {
+  fit <- lm(data[[y]] ~ I(data$distance_km / 1000))
+  s <- summary(fit)
+  tibble(
+    n = nrow(data),
+    intercept = coef(fit)[[1]],
+    slope_per_1000km = coef(fit)[[2]],
+    r2 = s$r.squared,
+    p = s$coefficients[2, 4]
+  )
+}
+
+
 # 그룹별 평균, 표준편차, 인원을 한 표로 만드는 함수
 # 예: summarize_groups(het, Ho, c(SUPER, POP))
 # 2단계 단일세포 분석에서도 그룹 이름만 바꿔 쓸 수 있다
