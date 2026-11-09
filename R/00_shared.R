@@ -41,6 +41,54 @@ fit_distance <- function(data, y) {
 }
 
 
+# PCA 그림 함수 3개. 2단계 단일세포 분석에서도 입력만 바꿔 쓴다
+
+# 점수 산점도. scores는 PC1, PC2, ... 열과 label 열을 가진 표
+# shape_by를 주면 그 열로 점 모양을 나눈다 (FALSE = 채운 점, TRUE = 빈 점)
+plot_pca <- function(scores, label, pcs = c(1, 2), colours = NULL, shape_by = NULL,
+                     pct = NULL, title = NULL) {
+  x <- paste0("PC", pcs[1])
+  y <- paste0("PC", pcs[2])
+  axis_name <- function(p) {
+    if (is.null(pct)) paste0("PC", p) else sprintf("PC%d (%.1f%%)", p, pct[p])
+  }
+  p <- ggplot(scores, aes(.data[[x]], .data[[y]], colour = .data[[label]]))
+  if (is.null(shape_by)) {
+    p <- p + geom_point(size = 1, alpha = 0.7)
+  } else {
+    p <- p + geom_point(aes(shape = .data[[shape_by]]), size = 1.2, alpha = 0.7) +
+      scale_shape_manual(values = c("그 외 집단" = 16, "최근 혼혈 집단" = 1), name = NULL)
+  }
+  if (!is.null(colours)) p <- p + scale_colour_manual(values = colours, name = NULL)
+  p +
+    guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1)),
+           shape = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+    labs(x = axis_name(pcs[1]), y = axis_name(pcs[2]), title = title) +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+}
+
+# PC별 설명 분산 비율 막대그래프. pct는 PC 순서대로 된 % 벡터
+plot_variance <- function(pct, title = "PC별 설명 분산 비율") {
+  tibble(PC = factor(seq_along(pct)), pct = pct) |>
+    ggplot(aes(PC, pct)) +
+    geom_col(width = 0.7, fill = "#2a78d6") +
+    labs(x = "주성분", y = "설명 분산 비율 (%)", title = title) +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor = element_blank())
+}
+
+# 위치에 따른 로딩. weights는 pos, PC, weight 열을 가진 긴 표
+plot_loadings <- function(weights, x_name = "위치 (Mb)", title = "위치에 따른 로딩") {
+  ggplot(weights, aes(pos / 1e6, weight)) +
+    geom_point(size = 0.4, alpha = 0.5, colour = "#2a78d6") +
+    facet_wrap(~PC, ncol = 1, scales = "free_y") +
+    labs(x = x_name, y = "로딩", title = title) +
+    theme_minimal(base_size = 11) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+}
+
+
 # 그룹별 평균, 표준편차, 인원을 한 표로 만드는 함수
 # 예: summarize_groups(het, Ho, c(SUPER, POP))
 # 2단계 단일세포 분석에서도 그룹 이름만 바꿔 쓸 수 있다
