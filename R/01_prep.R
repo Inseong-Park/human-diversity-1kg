@@ -87,6 +87,8 @@ for (p in unique(samples$pop)) {
 
 
 # ── 7. 표 0: 집단별 인원 (친척 제외 전후) ─────────────────────────
+# 이 단계의 친척 목록에는 VCF에 있는 사람이 없어 n_related가 모두 0이다
+# KING으로 찾은 친척 기준의 최종 표 0은 03_kinship.R이 다시 쓴다
 table0 <- samples |>
   group_by(super_pop, pop) |>
   summarise(

@@ -113,3 +113,26 @@ cutoff <- 0.177
 related <- pick_relatives(cutoff)
 write_tsv(tibble(`#IID` = related), "work/related.txt")
 cat("\n제외 기준", cutoff, "→ work/related.txt에", length(related), "명 기록\n")
+
+
+# ── 6. 표 0 다시 쓰기: 집단별 인원 (친척 제외 전후) ─────────────
+# 01_prep.R에서 만든 표 0은 제공된 친척 목록(VCF에 해당자 0명)을 기준으로 해서 n_related가 모두 0이다
+# 여기서 KING으로 찾은 친척 기준으로 다시 쓴다
+table0 <- read_tsv("work/samples.tsv", col_types = cols(.default = "c")) |>
+  # samples.tsv에도 related 열이 있어서, 위에서 만든 목록임을 .env$로 밝힌다
+  mutate(related = sample %in% .env$related,
+         admixed = pop %in% c("ASW", "ACB", "MXL", "PUR", "CLM")) |>
+  group_by(super_pop, pop) |>
+  summarise(
+    n_total    = n(),
+    n_related  = sum(related),
+    n_analysis = sum(!related),
+    admixed    = first(admixed),
+    .groups = "drop"
+  ) |>
+  arrange(factor(super_pop, levels = c("AFR", "EUR", "SAS", "EAS", "AMR")), pop)
+
+stopifnot(sum(table0$n_related) == length(related))
+write_csv(table0, "results/tables/table0_sample_counts.csv")
+cat("\n표 0 (친척 제외 전후):\n")
+print(filter(table0, n_related > 0))

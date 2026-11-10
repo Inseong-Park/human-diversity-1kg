@@ -1,0 +1,6 @@
+dataset,description,n_samples,n_variants
+B,"기준: 1촌 이상 제외, MAF 0.05, pruning",2491,8551
+V1,친척 포함,2504,8582
+V2,MAF 0.01,2491,31773
+V3,pruning 생략,2491,97088
+V4,MAF 0.01 + pruning 생략,2491,171629
