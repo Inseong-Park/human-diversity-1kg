@@ -77,8 +77,10 @@ cat("\n샘플 수:", nrow(psam), "\n")
 
 # ── Part B. 분석 조건별 데이터셋 ─────────────────────────────
 # 순서: 02_qc.R Part A → 03_kinship.R → 02_qc.R Part B
+# 친척 목록이 아직 없으면 여기서 03_kinship.R을 먼저 실행한다 (03은 work/raw만 있으면 된다)
 if (!file.exists("work/related.txt")) {
-  stop("work/related.txt가 없습니다. 먼저 R/03_kinship.R을 실행하세요")
+  message("work/related.txt가 없어서 R/03_kinship.R을 먼저 실행합니다")
+  source("R/03_kinship.R")
 }
 
 # 조건 하나로 데이터셋 하나를 만드는 함수
